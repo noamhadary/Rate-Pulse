@@ -760,7 +760,7 @@ export default function LandingPage() {
 
           {/* Headline with animated gradient on key phrase */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6 text-white">
-            מרכז את הביקורות שלך{' '}
+            מרכז את הביקורות{' '}
             <span
               className="gradient-text-anim"
               style={{ backgroundImage: 'linear-gradient(135deg,#a855f7,#60a5fa,#f472b6,#a855f7)' }}
