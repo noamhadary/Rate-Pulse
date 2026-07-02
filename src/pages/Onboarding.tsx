@@ -33,9 +33,9 @@ const STEPS = [
 ];
 
 const PLATFORMS = [
-  { id: 'google',      name: 'Google Business', icon: 'language', color: '#4285F4' },
-  { id: 'facebook',    name: 'Facebook Pages',  icon: 'groups',   color: '#1877F2' },
-  { id: 'tripadvisor', name: 'TripAdvisor',     icon: 'flight',   color: '#34E0A1' },
+  { id: 'google',      name: 'Google Business', icon: 'language', color: '#4285F4', comingSoon: false },
+  { id: 'facebook',    name: 'Facebook Pages',  icon: 'groups',   color: '#1877F2', comingSoon: false },
+  { id: 'tripadvisor', name: 'TripAdvisor',     icon: 'flight',   color: '#34E0A1', comingSoon: true  },
 ];
 
 type OnbCredField = { key: string; label: string; placeholder: string; dir?: 'ltr' | 'rtl'; type?: string; hint: string };
@@ -296,10 +296,11 @@ export default function Onboarding() {
                       className="flex items-center justify-between p-4 rounded-xl transition-all"
                       style={{
                         border: `2px solid ${isConnected ? p.color : 'rgba(197,198,210,0.4)'}`,
-                        backgroundColor: isConnected ? `${p.color}08` : '#f8f9fa',
-                        cursor: isConnected ? 'default' : 'pointer',
+                        backgroundColor: p.comingSoon ? '#f8f9fa' : isConnected ? `${p.color}08` : '#f8f9fa',
+                        cursor: p.comingSoon ? 'default' : isConnected ? 'default' : 'pointer',
+                        opacity: p.comingSoon ? 0.65 : 1,
                       }}
-                      onClick={() => !isConnected && togglePlatform(p.id)}
+                      onClick={() => !isConnected && !p.comingSoon && togglePlatform(p.id)}
                     >
                       <div className="flex items-center gap-3">
                         <div
@@ -315,7 +316,14 @@ export default function Onboarding() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm text-primary">{p.name}</span>
-                          {isConnected ? (
+                          {p.comingSoon ? (
+                            <span
+                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
+                              style={{ backgroundColor: '#fef9c3', color: '#854d0e' }}
+                            >
+                              בקרוב
+                            </span>
+                          ) : isConnected ? (
                             <span
                               className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
                               style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}
@@ -334,7 +342,7 @@ export default function Onboarding() {
                           )}
                         </div>
                       </div>
-                      {isConnected ? (
+                      {!p.comingSoon && (isConnected ? (
                         <button
                           onClick={(e) => { e.stopPropagation(); disconnectPlatform(p.id); }}
                           className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:opacity-80"
@@ -348,10 +356,10 @@ export default function Onboarding() {
                           className="w-6 h-6 rounded-full flex-shrink-0"
                           style={{ border: '2px solid #c5c6d2', backgroundColor: 'transparent' }}
                         />
-                      )}
+                      ))}
                     </div>
 
-                    {isConnected && fields.length > 0 && (
+                    {!p.comingSoon && isConnected && fields.length > 0 && (
                       <div
                         className="mt-1 p-4 rounded-xl space-y-3"
                         style={{ border: `1.5px solid ${p.color}30`, backgroundColor: `${p.color}05` }}
