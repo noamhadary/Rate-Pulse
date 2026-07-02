@@ -5,6 +5,8 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/auth-context';
 import { useBusiness } from '../context/business-context';
 import { seedDemoReviews } from '../lib/demoReviews';
+import { syncGoogleReviews } from '../lib/googleBusinessAPI';
+import { syncFacebookReviews } from '../lib/facebookReviewsAPI';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -60,9 +62,9 @@ const INITIAL_MEMBERS: TeamMember[] = [
 ];
 
 const INTEGRATIONS_CONFIG = [
-  { id: 'google',      name: 'Google Business', icon: 'language',       color: '#4285F4', reviews: 142, lastSync: 'לפני 2 שעות' },
-  { id: 'facebook',    name: 'Facebook Pages',  icon: 'groups',  color: '#1877F2', reviews: 0, lastSync: null },
-  { id: 'tripadvisor', name: 'TripAdvisor',     icon: 'flight',  color: '#34E0A1', reviews: 0, lastSync: null },
+  { id: 'google',      name: 'Google Business', icon: 'language', color: '#4285F4', reviews: 142, lastSync: 'לפני 2 שעות', comingSoon: false },
+  { id: 'facebook',    name: 'Facebook Pages',  icon: 'groups',   color: '#1877F2', reviews: 0,   lastSync: null,           comingSoon: false },
+  { id: 'tripadvisor', name: 'TripAdvisor',     icon: 'flight',   color: '#34E0A1', reviews: 0,   lastSync: null,           comingSoon: true  },
 ];
 
 type CredField = { key: string; label: string; placeholder: string; dir?: 'ltr' | 'rtl'; type?: string; hint: string };
@@ -1687,6 +1689,7 @@ function TeamTab({ showToast }: { showToast: (m: string, t?: ToastProps['type'])
 
 function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps['type']) => void }) {
   const { user, isDemo } = useAuth();
+  const { business } = useBusiness();
   const userId = isDemo ? null : user?.id ?? null;
   const [connected, setConnected]           = useState<string[]>(isDemo ? ['google'] : []);
   const [savedCreds, setSavedCreds]         = useState<Record<string, Record<string, string>>>({});
@@ -1747,9 +1750,21 @@ function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps[
 
   const loading = userId != null && fetchedKey !== userId;
 
-  const handleSync = (id: string) => {
+  const handleSync = async (id: string) => {
+    if (!business?.id) return;
     setSyncing(id);
-    setTimeout(() => { setSyncing(null); showToast('הביקורות סונכרנו בהצלחה'); }, 2000);
+    if (id === 'google') {
+      const { synced, error } = await syncGoogleReviews(business.id);
+      setSyncing(null);
+      showToast(error ? `שגיאה בסנכרון: ${error}` : `סונכרנו ${synced} ביקורות`, error ? 'error' : 'success');
+    } else if (id === 'facebook') {
+      const creds = savedCreds['facebook'] ?? {};
+      const { synced, error } = await syncFacebookReviews(business.id, creds.page_id ?? '', creds.access_token ?? '');
+      setSyncing(null);
+      showToast(error ? `שגיאה בסנכרון: ${error}` : `סונכרנו ${synced} ביקורות`, error ? 'error' : 'success');
+    } else {
+      setSyncing(null);
+    }
   };
 
   const handleConnected = async (id: string, creds: Record<string, string>) => {
@@ -1835,9 +1850,17 @@ function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps[
                           מחובר
                         </span>
                       )}
+                      {p.comingSoon && (
+                        <span className="text-xs font-bold px-2 py-0.5 rounded-full" style={{ backgroundColor: '#fef9c3', color: '#854d0e' }}>
+                          בקרוב
+                        </span>
+                      )}
                     </div>
                     {isConnected && p.reviews > 0 && (
                       <p className="text-xs text-outline">{p.reviews} ביקורות · סונכרן {p.lastSync}</p>
+                    )}
+                    {p.comingSoon && (
+                      <p className="text-xs text-outline">אינטגרציה בפיתוח — אין API ציבורי זמין</p>
                     )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -1851,15 +1874,17 @@ function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps[
                         {isSyncing ? 'מסנכרן...' : 'סנכרן'}
                       </button>
                     )}
-                    <button
-                      onClick={() => isConnected ? setDisconnectId(p.id) : setConnecting(p)}
-                      className="text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all hover:opacity-80"
-                      style={isConnected
-                        ? { backgroundColor: '#fee2e2', color: '#991b1b' }
-                        : { background: 'linear-gradient(135deg,#002366,#871dd3)', color: '#fff' }
-                      }>
-                      {isConnected ? 'נתק' : 'חבר'}
-                    </button>
+                    {!p.comingSoon && (
+                      <button
+                        onClick={() => isConnected ? setDisconnectId(p.id) : setConnecting(p)}
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all hover:opacity-80"
+                        style={isConnected
+                          ? { backgroundColor: '#fee2e2', color: '#991b1b' }
+                          : { background: 'linear-gradient(135deg,#002366,#871dd3)', color: '#fff' }
+                        }>
+                        {isConnected ? 'נתק' : 'חבר'}
+                      </button>
+                    )}
                   </div>
                 </div>
 

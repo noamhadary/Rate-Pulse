@@ -5,6 +5,8 @@ import AIReplyModal from '../components/reviews/AIReplyModal';
 import { useReviews } from '../hooks/useReviews';
 import { useBusiness } from '../context/business-context';
 import { syncGoogleReviews } from '../lib/googleBusinessAPI';
+import { syncFacebookReviews } from '../lib/facebookReviewsAPI';
+import { useAuth } from '../context/auth-context';
 
 const SENTIMENT_LABELS: Record<Sentiment, string> = {
   very_positive: 'חיובי מאוד',
@@ -97,17 +99,35 @@ export default function Reviews() {
   const [search, setSearch] = useState('');
   const [aiTarget, setAiTarget] = useState<Review | null>(null);
   const { business } = useBusiness();
+  const { user } = useAuth();
   const { reviews: filtered, updateReview, refetch } = useReviews({
     platform, sentiment, status, search,
   });
 
-  // Auto-sync Google reviews on page load
+  // Auto-sync all connected platforms on page load
   useEffect(() => {
-    if (!business?.id) return;
-    syncGoogleReviews(business.id).then(({ synced }) => {
-      if (synced > 0) refetch();
+    if (!business?.id || !user?.id) return;
+    const bId = business.id;
+    const uId = user.id;
+
+    syncGoogleReviews(bId).then(({ synced }) => { if (synced > 0) refetch(); });
+
+    import('../lib/supabase').then(({ supabase }) => {
+      supabase
+        .from('platform_connections')
+        .select('platform, credentials')
+        .eq('owner_id', uId)
+        .then(({ data }) => {
+          data?.forEach((row) => {
+            const creds = row.credentials as Record<string, string> | null;
+            if (row.platform === 'facebook' && creds?.page_id && creds?.access_token) {
+              syncFacebookReviews(bId, creds.page_id, creds.access_token)
+                .then(({ synced }) => { if (synced > 0) refetch(); });
+            }
+          });
+        });
     });
-  }, [business?.id]);
+  }, [business?.id, user?.id]);
 
   const handleReplied = (reviewId: string) => {
     updateReview(reviewId, { status: 'replied' });
