@@ -1,123 +1,90 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import Anthropic from 'npm:@anthropic-ai/sdk';
+import { createClient } from 'npm:@supabase/supabase-js';
 
-const CORS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
-const TONE_DESCRIPTIONS: Record<string, string> = {
-  soft:       'חמה ואישית — צור קשר רגשי אמיתי, הכר בתחושת הלקוח, הבע אמפתיה כנה',
-  gentle:     'מנומסת ועדינה — מכבדת את הלקוח, מנוסחת בזהירות, מרגיעה ומייצרת אמון',
-  firm:       'מקצועית וישירה — עניינית וברורה, מציגה עובדות או פעולה, ללא ריגושים מיותרים',
-  apologetic: 'מתנצלת ומפצה — מביעה חרטה כנה, לוקחת אחריות, מציעה פתרון או פיצוי',
+const TONE_INSTRUCTIONS: Record<string, string> = {
+  soft:       'חמה ואישית — פנה לשם הלקוח, השתמש בשפה אמפתית ורגשית, צור תחושת קירבה אמיתית.',
+  gentle:     'עדינה ומנומסת — שפה מכבדת, רגועה ומסבירה. אל תהיה יתר על המידה רגשי, אבל הראה הבנה.',
+  firm:       'תקיפה ומקצועית — ישירה, עניינית ולעניין. מינימום מליצות, מקסימום ביטחון עצמי ומקצועיות.',
+  apologetic: 'מתנצלת ומפצה — הכר בבעיה במפורש, הבע חרטה כנה, הצע פתרון או פיצוי. אל תתנצל יתר על המידה.',
 };
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS });
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+      },
+    });
+  }
 
   try {
-    const { reviewer_name, rating, content, tone, review_id } = await req.json();
+    const { review_id, reviewer_name, rating, content, tone } = await req.json();
 
-    if (!content || !tone) {
-      return new Response(JSON.stringify({ error: 'Missing content or tone' }), {
-        status: 400, headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
-    }
+    const toneInstruction = TONE_INSTRUCTIONS[tone as string] ?? TONE_INSTRUCTIONS.gentle;
+    const stars = '★'.repeat(Number(rating)) + '☆'.repeat(5 - Number(rating));
 
-    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
-    if (!anthropicKey) throw new Error('ANTHROPIC_API_KEY not set');
+    const anthropic = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY') });
 
-    const systemPrompt = `אתה מומחה לניהול מוניטין לעסקים ישראליים. תפקידך לנסח תגובות מקצועיות לביקורות לקוחות.
+    const message = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1024,
+      messages: [{
+        role: 'user',
+        content: `אתה מנהל קשרי לקוחות של עסק ישראלי. כתוב בדיוק 4 תגובות שונות לביקורת הבאה.
 
-חוקים מחייבים — חשוב מאוד:
-1. התגובה חייבת להתייחס ספציפית לתוכן הביקורת — ציין מה הלקוח כתב (שירות, מוצר, המתנה וכו')
-2. לעולם אל תפגע בלקוח, אל תטיל ספק בדבריו, ואל תהיה מתגוננת
-3. כתוב בעברית תקנית וטבעית
-4. כל תגובה: 2-3 משפטים בלבד
-5. פנה ישירות ללקוח בגוף שני (אתה/את)
-6. אל תפתח ב"שלום" בלבד — פתח עם תגובה ישירה לתוכן
-7. אל תזכיר שם עסק ספציפי
-8. החזר JSON בלבד — ללא טקסט לפני או אחרי
+ביקורת:
+- שם: ${reviewer_name}
+- דירוג: ${stars} (${rating}/5)
+- תוכן: "${content}"
 
-אופי התגובות: ${TONE_DESCRIPTIONS[tone] ?? TONE_DESCRIPTIONS.soft}`;
+סגנון נדרש: ${toneInstruction}
 
-    const userPrompt = `ביקורת מאת ${reviewer_name} (${rating} כוכבים):
-"${content}"
+חוקים:
+1. כל תגובה שונה בניסוח ובגישה — לא העתקים עם שינויים קלים
+2. פנה תמיד בשם הלקוח
+3. עברית טבעית ואנושית, לא שפת בוט
+4. בין משפט אחד לשלושה משפטים לכל היותר
+5. הפרד בין תגובה לתגובה בשורה ריקה אחת בלבד
+6. אל תמספר, אל תוסיף כותרות
 
-נתח את הביקורת והבן מה בדיוק הלקוח חווה (טוב או רע).
-צור 4 תגובות שונות זו מזו — כל אחת מתייחסת ספציפית לנושאים שהוזכרו בביקורת.
-אסור לכתוב תגובה גנרית שיכולה להתאים לכל ביקורת.
-
-החזר אך ורק:
-{"suggestions":["תגובה 1","תגובה 2","תגובה 3","תגובה 4"]}`;
-
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-        'x-api-key': anthropicKey,
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-6',
-        max_tokens: 1024,
-        system: [
-          {
-            type: 'text',
-            text: systemPrompt,
-            cache_control: { type: 'ephemeral' },
-          },
-        ],
-        messages: [{ role: 'user', content: userPrompt }],
-      }),
+תגובות:`,
+      }],
     });
 
-    if (!res.ok) {
-      const err = await res.text();
-      throw new Error(`Claude API error: ${err}`);
-    }
+    const text = message.content[0].type === 'text' ? message.content[0].text.trim() : '';
+    const suggestions = text
+      .split(/\n\n+/)
+      .map((s: string) => s.trim())
+      .filter(Boolean)
+      .slice(0, 4);
 
-    const claude = await res.json();
-    const raw = claude.content?.[0]?.text ?? '{}';
+    while (suggestions.length < 4) suggestions.push(suggestions[0] ?? '');
 
-    let suggestions: string[] = [];
-    try {
-      const parsed = JSON.parse(raw);
-      suggestions = parsed.suggestions ?? [];
-    } catch {
-      // Fallback: extract JSON block if Claude wrapped it in markdown
-      const match = raw.match(/\{[\s\S]*\}/);
-      if (match) suggestions = JSON.parse(match[0]).suggestions ?? [];
-    }
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+    );
 
-    if (suggestions.length !== 4) throw new Error('Expected 4 suggestions from Claude');
+    const { data: session } = await supabase
+      .from('reply_sessions')
+      .insert({
+        review_id,
+        tone,
+        suggestions,
+        expires_at: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+      })
+      .select('id')
+      .single();
 
-    // Persist session to DB if review_id provided
-    if (review_id) {
-      const supabase = createClient(
-        Deno.env.get('SUPABASE_URL') ?? '',
-        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
-      );
-      const { data: session, error } = await supabase
-        .from('reply_sessions')
-        .insert({ review_id, tone, suggestions })
-        .select('id')
-        .single();
-
-      if (error) console.error('DB insert error:', error);
-
-      return new Response(JSON.stringify({ suggestions, session_id: session?.id }), {
-        headers: { ...CORS, 'Content-Type': 'application/json' },
-      });
-    }
-
-    return new Response(JSON.stringify({ suggestions }), {
-      headers: { ...CORS, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ suggestions, session_id: session?.id ?? null }),
+      { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } },
+    );
   } catch (err) {
-    console.error(err);
-    return new Response(JSON.stringify({ error: String(err) }), {
-      status: 500, headers: { ...CORS, 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: (err as Error).message }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } },
+    );
   }
 });
