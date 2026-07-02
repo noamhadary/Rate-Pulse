@@ -755,12 +755,12 @@ export default function LandingPage() {
             }}
           >
             <span className="material-symbols-outlined text-[14px] icon-filled" style={{ color: '#e0b6ff' }}>auto_awesome</span>
-            מנוע ה-AI הכי חכם לניהול מוניטין בישראל
+            מנוע ה-AI הכי חכם לניהול ושיפור מוניטין העסק
           </div>
 
           {/* Headline with animated gradient on key phrase */}
           <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold leading-tight mb-6 text-white">
-            כל הביקורות שלך{' '}
+            מרכז את הביקורות שלך{' '}
             <span
               className="gradient-text-anim"
               style={{ backgroundImage: 'linear-gradient(135deg,#a855f7,#60a5fa,#f472b6,#a855f7)' }}
@@ -768,11 +768,11 @@ export default function LandingPage() {
               במקום אחד
             </span>
             <br />
-            תגובות AI שנשמעות כמוך
+            ומציע תגובות AI שנשמעות כמו מנהל לקוחות
           </h1>
 
           <p className="text-lg md:text-xl mb-10 max-w-2xl mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
-            Rate Pulse מסנכרן ביקורות מכל הפלטפורמות, מנתח סנטימנט בעברית ומציע תגובות מותאמות אישית -- כדי שתוכל לשמור על מוניטין מושלם בלי לבזבז שעות.
+            Rate Pulse מסנכרן ביקורות מכל הפלטפורמות, מנתח מגמות בעברית ומציע תגובות מותאמות אישית — כדי שתוכל לשפר ולשמור על מוניטין מושלם בלי לבזבז שעות.
           </p>
 
           {/* CTA buttons */}
