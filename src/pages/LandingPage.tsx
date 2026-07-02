@@ -768,7 +768,7 @@ export default function LandingPage() {
               במקום אחד
             </span>
             <br />
-            ומציע תגובות AI שנשמעות כמו מנהל לקוחות
+            תגובות AI כמו מנהל לקוחות
           </h1>
 
           <p className="text-lg md:text-xl mb-10 max-w-2xl mx-auto leading-relaxed" style={{ color: 'rgba(255,255,255,0.72)' }}>
