@@ -149,7 +149,7 @@ const FEATURES = [
   { icon: 'star',                title: 'ניהול ביקורות במקום אחד',   desc: 'Google, Facebook ו-TripAdvisor -- כל הביקורות מסונכרנות אוטומטית לדשבורד אחד.',                            color: '#871dd3', bg: 'rgba(135,29,211,0.08)' },
   { icon: 'smart_toy',           title: 'תגובות AI חכמות',           desc: 'המערכת מנתחת את הסנטימנט ומציעה תגובה מדויקת לכל ביקורת -- בסגנון שבחרת.',                                 color: '#2563eb', bg: 'rgba(37,99,235,0.08)'   },
   { icon: 'notifications_active',title: 'התראות בזמן אמת',           desc: 'קבל התראה מיידית לאימייל, WhatsApp או דפדפן ברגע שמגיעה ביקורת חדשה.',                                       color: '#d97706', bg: 'rgba(217,119,6,0.08)'   },
-  { icon: 'analytics',           title: 'אנליטיקס מעמיק',            desc: 'גרפים ומגמות שמראים לך מתי הביקורות מגיעות, מאיפה ומה הלקוחות כותבים הכי הרבה.',                            color: '#16a34a', bg: 'rgba(22,163,74,0.08)'   },
+  { icon: 'analytics',           title: 'ניתוח אנליטי מעמיק',            desc: 'גרפים ומגמות שמראים לך מתי הביקורות מגיעות, מאיפה ומה הלקוחות כותבים הכי הרבה.',                            color: '#16a34a', bg: 'rgba(22,163,74,0.08)'   },
   { icon: 'group',               title: 'ניהול צוות',                 desc: 'הוסף חברי צוות עם הרשאות מותאמות -- מנהל, מנהל ביקורות, או צופה בלבד.',                                    color: '#dc2626', bg: 'rgba(220,38,38,0.08)'   },
   { icon: 'description',         title: 'דוחות מותאמים',             desc: 'ייצא דוחות PDF ו-Excel עם ביצועי הביקורות, סנטימנט ומגמות לאורך זמן.',                                       color: '#0891b2', bg: 'rgba(8,145,178,0.08)'   },
 ];
@@ -834,7 +834,7 @@ export default function LandingPage() {
             </span>
             <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: '#00113a' }}>כלים חכמים לניהול מוניטין</h2>
             <p className="text-lg max-w-2xl mx-auto" style={{ color: '#757682' }}>
-              מסונכרן עם כל הפלטפורמות, עובד בעברית ומציע אינטליגנציה מלאכותית שמבינה את הלקוחות שלך.
+              מסונכרן עם כל הפלטפורמות, עובד בעברית ומציע אינטליגנציה מלאכותית שמבינה ומדברת אל הלקוחות שלך.
             </p>
           </FadeSection>
 
@@ -868,7 +868,7 @@ export default function LandingPage() {
               איך זה עובד
             </span>
             <h2 className="text-3xl md:text-4xl font-extrabold mb-4" style={{ color: '#00113a' }}>שלושה צעדים לשלוט במוניטין</h2>
-            <p className="text-lg" style={{ color: '#757682' }}>הגדרה פעם אחת, תוצאות מדי יום.</p>
+            <p className="text-lg" style={{ color: '#757682' }}>מגדירים פעם אחת, ורואים תוצאות מדי יום.</p>
           </FadeSection>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 relative">
