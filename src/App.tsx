@@ -18,7 +18,8 @@ const AuthCallback   = lazy(() => import('./pages/auth/AuthCallback'));
 const ForgotPassword    = lazy(() => import('./pages/auth/ForgotPassword'));
 const ResetPassword     = lazy(() => import('./pages/auth/ResetPassword'));
 const FacebookCallback  = lazy(() => import('./pages/auth/FacebookCallback'));
-const LandingPage  = lazy(() => import('./pages/LandingPage'));
+const LandingPage    = lazy(() => import('./pages/LandingPage'));
+const PrivacyPolicy  = lazy(() => import('./pages/PrivacyPolicy'));
 
 function PageLoader() {
   return (
@@ -42,6 +43,7 @@ export default function App() {
               <Route path="/auth/forgot-password"   element={<ForgotPassword />} />
               <Route path="/auth/reset-password"    element={<ResetPassword />} />
               <Route path="/auth/facebook/callback" element={<FacebookCallback />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>
                   <Route path="/dashboard"  element={<Dashboard />} />
