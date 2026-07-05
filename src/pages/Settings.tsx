@@ -7,6 +7,7 @@ import { useBusiness } from '../context/business-context';
 import { seedDemoReviews } from '../lib/demoReviews';
 import { syncGoogleReviews } from '../lib/googleBusinessAPI';
 import { syncFacebookReviews } from '../lib/facebookReviewsAPI';
+import { openFacebookOAuth, type FacebookPage } from '../lib/facebookOAuth';
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 
@@ -1698,6 +1699,8 @@ function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps[
   const [savingPlatform, setSavingPlatform] = useState<string | null>(null);
   const [connecting, setConnecting]         = useState<typeof INTEGRATIONS_CONFIG[number] | null>(null);
   const [disconnectId, setDisconnectId]     = useState<string | null>(null);
+  const [fbPages, setFbPages]               = useState<FacebookPage[] | null>(null);
+  const [fbConnecting, setFbConnecting]     = useState(false);
 
   const updateCred = (platformId: string, key: string, value: string) =>
     setSavedCreds(prev => ({ ...prev, [platformId]: { ...(prev[platformId] ?? {}), [key]: value } }));
@@ -1767,6 +1770,41 @@ function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps[
     }
   };
 
+  const handleFacebookOAuth = async () => {
+    if (isDemo) { showToast('לא זמין בגרסת הדמו', 'info'); return; }
+    setFbConnecting(true);
+    try {
+      const pages = await openFacebookOAuth();
+      setFbConnecting(false);
+      if (pages.length === 1) {
+        await connectFacebookPage(pages[0]);
+      } else if (pages.length > 1) {
+        setFbPages(pages);
+      } else {
+        showToast('לא נמצאו דפים עסקיים בחשבון', 'error');
+      }
+    } catch (err: unknown) {
+      setFbConnecting(false);
+      const msg = (err as Error).message;
+      if (msg === 'popup_blocked') showToast('הפופאפ נחסם — אפשר פופאפים עבור אתר זה', 'error');
+      else if (msg !== 'popup_closed') showToast('שגיאה בחיבור לפייסבוק', 'error');
+    }
+  };
+
+  const connectFacebookPage = async (page: FacebookPage) => {
+    const creds = { page_id: page.id, access_token: page.access_token, page_name: page.name };
+    if (user) {
+      await supabase.from('platform_connections').upsert(
+        { owner_id: user.id, platform: 'facebook', credentials: creds },
+        { onConflict: 'owner_id,platform' },
+      );
+    }
+    setConnected(prev => prev.includes('facebook') ? prev : [...prev, 'facebook']);
+    setSavedCreds(prev => ({ ...prev, facebook: creds }));
+    setFbPages(null);
+    showToast(`${page.name} חובר בהצלחה!`);
+  };
+
   const handleConnected = async (id: string, creds: Record<string, string>) => {
     if (!isDemo && user) {
       await supabase
@@ -1817,6 +1855,36 @@ function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps[
                 className="px-5 py-2.5 rounded-xl font-bold text-sm cursor-pointer border text-on-surface-variant border-outline-variant/50">
                 ביטול
               </button>
+            </div>
+          </ModalBox>
+        </Overlay>
+      )}
+
+      {/* Facebook page selector dialog */}
+      {fbPages && (
+        <Overlay onClose={() => setFbPages(null)}>
+          <ModalBox title="בחר דף עסקי" icon="groups" onClose={() => setFbPages(null)}>
+            <p className="text-sm mb-4 text-on-surface-variant">נמצאו מספר דפים — בחר איזה לחבר:</p>
+            <div className="space-y-2">
+              {fbPages.map((page) => (
+                <button
+                  key={page.id}
+                  onClick={() => connectFacebookPage(page)}
+                  className="w-full flex items-center gap-3 p-3 rounded-xl text-right transition-colors hover:bg-blue-50 border border-outline-variant/30"
+                >
+                  {page.picture?.url ? (
+                    <img src={page.picture.url} alt={page.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#1877F2' }}>
+                      <span className="material-symbols-outlined text-white text-[18px]">groups</span>
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-sm font-semibold text-primary">{page.name}</p>
+                    <p className="text-xs text-outline">ID: {page.id}</p>
+                  </div>
+                </button>
+              ))}
             </div>
           </ModalBox>
         </Overlay>
@@ -1874,7 +1942,7 @@ function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps[
                         {isSyncing ? 'מסנכרן...' : 'סנכרן'}
                       </button>
                     )}
-                    {!p.comingSoon && (
+                    {!p.comingSoon && p.id !== 'facebook' && (
                       <button
                         onClick={() => isConnected ? setDisconnectId(p.id) : setConnecting(p)}
                         className="text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all hover:opacity-80"
@@ -1883,6 +1951,28 @@ function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps[
                           : { background: 'linear-gradient(135deg,#002366,#871dd3)', color: '#fff' }
                         }>
                         {isConnected ? 'נתק' : 'חבר'}
+                      </button>
+                    )}
+                    {p.id === 'facebook' && !isConnected && (
+                      <button
+                        onClick={handleFacebookOAuth}
+                        disabled={fbConnecting}
+                        className="flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all hover:opacity-80 disabled:opacity-60 text-white"
+                        style={{ backgroundColor: '#1877F2' }}
+                      >
+                        {fbConnecting
+                          ? <span className="material-symbols-outlined text-[13px] animate-spin">progress_activity</span>
+                          : <span className="material-symbols-outlined text-[13px]">login</span>
+                        }
+                        {fbConnecting ? 'מתחבר...' : 'התחבר עם Facebook'}
+                      </button>
+                    )}
+                    {p.id === 'facebook' && isConnected && (
+                      <button
+                        onClick={() => setDisconnectId(p.id)}
+                        className="text-xs font-bold px-3 py-1.5 rounded-lg cursor-pointer transition-all hover:opacity-80"
+                        style={{ backgroundColor: '#fee2e2', color: '#991b1b' }}>
+                        נתק
                       </button>
                     )}
                   </div>

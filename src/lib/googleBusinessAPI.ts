@@ -45,7 +45,7 @@ export async function syncGoogleReviews(businessId: string): Promise<SyncResult>
   const { data: { session } } = await supabase.auth.getSession();
   const token = session?.provider_token;
 
-  if (!token) return { synced: 0, error: 'no_token' };
+  if (!token) return { synced: 0, error: 'לא מחובר עם Google — התחבר עם חשבון Google כדי לסנכרן' };
 
   try {
     const { accounts = [] } = await gbpFetch<{ accounts?: GBPAccount[] }>(

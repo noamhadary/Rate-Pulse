@@ -15,8 +15,9 @@ const SeedDemo     = lazy(() => import('./pages/SeedDemo'));
 const Login          = lazy(() => import('./pages/auth/Login'));
 const Register       = lazy(() => import('./pages/auth/Register'));
 const AuthCallback   = lazy(() => import('./pages/auth/AuthCallback'));
-const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
-const ResetPassword  = lazy(() => import('./pages/auth/ResetPassword'));
+const ForgotPassword    = lazy(() => import('./pages/auth/ForgotPassword'));
+const ResetPassword     = lazy(() => import('./pages/auth/ResetPassword'));
+const FacebookCallback  = lazy(() => import('./pages/auth/FacebookCallback'));
 const LandingPage  = lazy(() => import('./pages/LandingPage'));
 
 function PageLoader() {
@@ -38,8 +39,9 @@ export default function App() {
               <Route path="/auth/login"           element={<Login />} />
               <Route path="/auth/register"        element={<Register />} />
               <Route path="/auth/callback"        element={<AuthCallback />} />
-              <Route path="/auth/forgot-password" element={<ForgotPassword />} />
-              <Route path="/auth/reset-password"  element={<ResetPassword />} />
+              <Route path="/auth/forgot-password"   element={<ForgotPassword />} />
+              <Route path="/auth/reset-password"    element={<ResetPassword />} />
+              <Route path="/auth/facebook/callback" element={<FacebookCallback />} />
               <Route element={<ProtectedRoute />}>
                 <Route element={<Layout />}>
                   <Route path="/dashboard"  element={<Dashboard />} />
