@@ -57,7 +57,14 @@ export default function AuthCallback() {
               resolve(data.session);
               return;
             }
-            const { data: listener } = supabase.auth.onAuthStateChange((_event, s) => {
+            const { data: listener } = supabase.auth.onAuthStateChange((event, s) => {
+              if (event === 'PASSWORD_RECOVERY') {
+                clearTimeout(timeout);
+                listener.subscription.unsubscribe();
+                navigate('/auth/reset-password', { replace: true });
+                resolve(null);
+                return;
+              }
               if (s) {
                 clearTimeout(timeout);
                 listener.subscription.unsubscribe();

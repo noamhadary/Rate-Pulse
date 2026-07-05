@@ -109,9 +109,14 @@ export default function Login() {
             </div>
 
             <div>
-              <label htmlFor="login-password" className="block text-sm font-semibold mb-1.5 text-primary">
-                סיסמה
-              </label>
+              <div className="flex items-center justify-between mb-1.5">
+                <label htmlFor="login-password" className="text-sm font-semibold text-primary">
+                  סיסמה
+                </label>
+                <Link to="/auth/forgot-password" className="text-xs font-semibold text-secondary hover:underline">
+                  שכחתי סיסמה
+                </Link>
+              </div>
               <input
                 id="login-password"
                 type="password"
