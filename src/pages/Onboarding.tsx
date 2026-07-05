@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/auth-context';
 import { useBusiness } from '../context/business-context';
 import { seedDemoReviews } from '../lib/demoReviews';
+import { openFacebookOAuth, type FacebookPage } from '../lib/facebookOAuth';
 
 const STEPS = [
   {
@@ -73,6 +74,8 @@ export default function Onboarding() {
   const [notifs, setNotifs] = useState({ email: true, new_review: true, critical: true, weekly: false });
   const [saving, setSaving] = useState(false);
   const prefilled = useRef(false);
+  const [fbConnecting, setFbConnecting] = useState(false);
+  const [fbPages, setFbPages]           = useState<FacebookPage[] | null>(null);
 
   // Pre-fill Step 1 form from existing business record — runs once, never overwrites user edits
   useEffect(() => {
@@ -120,6 +123,33 @@ export default function Onboarding() {
     setPlatformCreds((prev) => { const next = { ...prev }; delete next[id]; return next; });
     if (user && !isDemo) {
       await supabase.from('platform_connections').delete().eq('owner_id', user.id).eq('platform', id);
+    }
+  };
+
+  const handleFacebookOAuth = async () => {
+    setFbConnecting(true);
+    try {
+      const pages = await openFacebookOAuth();
+      setFbConnecting(false);
+      if (pages.length === 1) await connectFacebookPage(pages[0]);
+      else if (pages.length > 1) setFbPages(pages);
+    } catch (err: unknown) {
+      setFbConnecting(false);
+      const msg = (err as Error).message;
+      if (msg === 'popup_blocked') alert('הפופאפ נחסם — אפשר פופאפים עבור אתר זה ונסה שנית');
+    }
+  };
+
+  const connectFacebookPage = async (page: FacebookPage) => {
+    const creds = { page_id: page.id, access_token: page.access_token, page_name: page.name };
+    setConnected((prev) => prev.includes('facebook') ? prev : [...prev, 'facebook']);
+    setPlatformCreds((prev) => ({ ...prev, facebook: creds }));
+    setFbPages(null);
+    if (user && !isDemo) {
+      await supabase.from('platform_connections').upsert(
+        { owner_id: user.id, platform: 'facebook', credentials: creds },
+        { onConflict: 'owner_id,platform' },
+      );
     }
   };
 
@@ -286,10 +316,37 @@ export default function Onboarding() {
           {step === 2 && (
             <div className="space-y-3">
               <h2 className="text-xl font-bold mb-4 text-primary">חיבור פלטפורמות</h2>
+
+              {/* Facebook page selector */}
+              {fbPages && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                  <div className="bg-white rounded-2xl p-6 w-full max-w-sm" style={{ boxShadow: '0 25px 50px rgba(0,0,0,0.3)' }}>
+                    <h3 className="text-base font-bold mb-1 text-primary">בחר דף עסקי</h3>
+                    <p className="text-sm mb-4 text-on-surface-variant">נמצאו מספר דפים — בחר איזה לחבר:</p>
+                    <div className="space-y-2">
+                      {fbPages.map((page) => (
+                        <button key={page.id} onClick={() => connectFacebookPage(page)}
+                          className="w-full flex items-center gap-3 p-3 rounded-xl text-right transition-colors hover:bg-blue-50 border border-outline-variant/30">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#1877F2' }}>
+                            <span className="material-symbols-outlined text-white text-[18px]">groups</span>
+                          </div>
+                          <div>
+                            <p className="text-sm font-semibold text-primary">{page.name}</p>
+                            <p className="text-xs text-outline">ID: {page.id}</p>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <button onClick={() => setFbPages(null)} className="mt-4 w-full py-2 text-sm text-outline hover:text-primary cursor-pointer">ביטול</button>
+                  </div>
+                </div>
+              )}
+
               {PLATFORMS.map((p) => {
                 const isConnected = connected.includes(p.id);
-                const fields = PLATFORM_CREDENTIAL_FIELDS[p.id] ?? [];
+                const fields = p.id === 'facebook' ? [] : (PLATFORM_CREDENTIAL_FIELDS[p.id] ?? []);
                 const creds = platformCreds[p.id] ?? {};
+                const isFacebook = p.id === 'facebook';
                 return (
                   <div key={p.id}>
                     <div
@@ -297,87 +354,69 @@ export default function Onboarding() {
                       style={{
                         border: `2px solid ${isConnected ? p.color : 'rgba(197,198,210,0.4)'}`,
                         backgroundColor: p.comingSoon ? '#f8f9fa' : isConnected ? `${p.color}08` : '#f8f9fa',
-                        cursor: p.comingSoon ? 'default' : isConnected ? 'default' : 'pointer',
+                        cursor: p.comingSoon || isFacebook ? 'default' : isConnected ? 'default' : 'pointer',
                         opacity: p.comingSoon ? 0.65 : 1,
                       }}
-                      onClick={() => !isConnected && !p.comingSoon && togglePlatform(p.id)}
+                      onClick={() => !isConnected && !p.comingSoon && !isFacebook && togglePlatform(p.id)}
                     >
                       <div className="flex items-center gap-3">
                         <div
                           className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                           style={{ backgroundColor: isConnected ? `${p.color}18` : '#edeeef' }}
                         >
-                          <span
-                            className="material-symbols-outlined text-[20px]"
-                            style={{ color: isConnected ? p.color : '#444650' }}
-                          >
+                          <span className="material-symbols-outlined text-[20px]" style={{ color: isConnected ? p.color : '#444650' }}>
                             {p.icon}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm text-primary">{p.name}</span>
                           {p.comingSoon ? (
-                            <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
-                              style={{ backgroundColor: '#fef9c3', color: '#854d0e' }}
-                            >
-                              בקרוב
-                            </span>
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#fef9c3', color: '#854d0e' }}>בקרוב</span>
                           ) : isConnected ? (
-                            <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
-                              style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}
-                            >
-                              <span className="material-symbols-outlined text-[12px] icon-filled">check_circle</span>
-                              פעיל
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#dcfce7', color: '#16a34a' }}>
+                              <span className="material-symbols-outlined text-[12px] icon-filled">check_circle</span>פעיל
                             </span>
                           ) : (
-                            <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold"
-                              style={{ backgroundColor: '#f3f4f6', color: '#9ca3af' }}
-                            >
-                              <span className="material-symbols-outlined text-[12px]">radio_button_unchecked</span>
-                              לא פעיל
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold" style={{ backgroundColor: '#f3f4f6', color: '#9ca3af' }}>
+                              <span className="material-symbols-outlined text-[12px]">radio_button_unchecked</span>לא פעיל
                             </span>
                           )}
                         </div>
                       </div>
-                      {!p.comingSoon && (isConnected ? (
-                        <button
-                          onClick={(e) => { e.stopPropagation(); disconnectPlatform(p.id); }}
-                          className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:opacity-80"
-                          style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' }}
-                        >
-                          <span className="material-symbols-outlined text-[13px]">link_off</span>
-                          נתק
-                        </button>
-                      ) : (
-                        <div
-                          className="w-6 h-6 rounded-full flex-shrink-0"
-                          style={{ border: '2px solid #c5c6d2', backgroundColor: 'transparent' }}
-                        />
-                      ))}
+
+                      {/* Actions */}
+                      {!p.comingSoon && (
+                        isConnected ? (
+                          <button onClick={(e) => { e.stopPropagation(); disconnectPlatform(p.id); }}
+                            className="flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold cursor-pointer transition-all hover:opacity-80"
+                            style={{ backgroundColor: '#fee2e2', color: '#dc2626', border: '1px solid #fca5a5' }}>
+                            <span className="material-symbols-outlined text-[13px]">link_off</span>נתק
+                          </button>
+                        ) : isFacebook ? (
+                          <button onClick={(e) => { e.stopPropagation(); handleFacebookOAuth(); }}
+                            disabled={fbConnecting}
+                            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold cursor-pointer transition-all hover:opacity-80 disabled:opacity-60 text-white"
+                            style={{ backgroundColor: '#1877F2' }}>
+                            {fbConnecting
+                              ? <span className="material-symbols-outlined text-[13px] animate-spin">progress_activity</span>
+                              : <span className="material-symbols-outlined text-[13px]">login</span>}
+                            {fbConnecting ? 'מתחבר...' : 'התחבר עם Facebook'}
+                          </button>
+                        ) : (
+                          <div className="w-6 h-6 rounded-full flex-shrink-0" style={{ border: '2px solid #c5c6d2' }} />
+                        )
+                      )}
                     </div>
 
                     {!p.comingSoon && isConnected && fields.length > 0 && (
-                      <div
-                        className="mt-1 p-4 rounded-xl space-y-3"
-                        style={{ border: `1.5px solid ${p.color}30`, backgroundColor: `${p.color}05` }}
-                      >
+                      <div className="mt-1 p-4 rounded-xl space-y-3" style={{ border: `1.5px solid ${p.color}30`, backgroundColor: `${p.color}05` }}>
                         {fields.map((f) => (
                           <div key={f.key}>
-                            <label className="block text-xs font-semibold mb-1 text-on-surface-variant">
-                              {f.label}
-                            </label>
+                            <label className="block text-xs font-semibold mb-1 text-on-surface-variant">{f.label}</label>
                             <input
                               type={f.type ?? 'text'}
                               value={creds[f.key] ?? ''}
-                              onChange={(e) =>
-                                setPlatformCreds((prev) => ({
-                                  ...prev,
-                                  [p.id]: { ...(prev[p.id] ?? {}), [f.key]: e.target.value },
-                                }))
-                              }
+                              onChange={(e) => setPlatformCreds((prev) => ({ ...prev, [p.id]: { ...(prev[p.id] ?? {}), [f.key]: e.target.value } }))}
                               placeholder={f.placeholder}
                               dir={f.dir}
                               onClick={(e) => e.stopPropagation()}
