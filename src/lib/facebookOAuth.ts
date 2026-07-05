@@ -1,6 +1,6 @@
 const FB_APP_ID    = import.meta.env.VITE_FACEBOOK_APP_ID ?? '';
 const REDIRECT_URI = `${window.location.origin}/auth/facebook/callback`;
-const SCOPE        = 'pages_show_list,pages_read_user_content';
+const SCOPE        = 'pages_show_list';
 
 export interface FacebookPage {
   id:           string;
