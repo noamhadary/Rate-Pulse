@@ -1063,13 +1063,13 @@ function ProfileTab({ showToast }: { showToast: (m: string, t?: ToastProps['type
                 <img
                   src={logoUrl}
                   alt="לוגו העסק"
-                  className="w-24 h-24 rounded-2xl object-contain"
+                  className="w-16 h-16 rounded-2xl object-contain"
                   style={{ border: '2px solid rgba(135,29,211,0.2)' }}
                   onError={() => setLogoUrl(null)}
                 />
               ) : (
                 <div
-                  className="w-24 h-24 rounded-2xl flex items-center justify-center text-xl font-extrabold"
+                  className="w-16 h-16 rounded-2xl flex items-center justify-center text-xl font-extrabold"
                   style={{ background: 'linear-gradient(135deg,#002366,#871dd3)', color: '#fff' }}
                 >
                   {initials}
