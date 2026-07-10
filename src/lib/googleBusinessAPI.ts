@@ -97,6 +97,9 @@ export async function syncGoogleReviews(businessId: string): Promise<SyncResult>
 
     return { synced: total };
   } catch (e) {
-    return { synced: 0, error: (e as Error).message };
+    const msg = (e as Error).message;
+    if (msg.includes('401'))
+      return { synced: 0, error: 'פג תוקף החיבור עם Google — התנתק והתחבר מחדש' };
+    return { synced: 0, error: msg };
   }
 }

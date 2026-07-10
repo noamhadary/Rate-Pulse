@@ -28,10 +28,9 @@ export default function FacebookCallback() {
 
       try {
         setMessage('מחליף טוקן...');
-        const { data: { user } } = await supabase.auth.getUser();
 
         const { data, error: fnError } = await supabase.functions.invoke('facebook-oauth', {
-          body: { code, redirect_uri: FB_REDIRECT_URI, user_id: user?.id ?? '' },
+          body: { code, redirect_uri: FB_REDIRECT_URI },
         });
 
         if (fnError || data?.error) {

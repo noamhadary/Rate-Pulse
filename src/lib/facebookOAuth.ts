@@ -25,25 +25,35 @@ export function openFacebookOAuth(): Promise<FacebookPage[]> {
     const popup = window.open(url, 'fb-oauth', 'width=600,height=700,left=300,top=100');
     if (!popup) { reject(new Error('popup_blocked')); return; }
 
+    const cleanup = () => {
+      clearInterval(pollClose);
+      clearTimeout(maxWait);
+      window.removeEventListener('message', handler);
+    };
+
     const handler = (e: MessageEvent) => {
       if (e.origin !== window.location.origin) return;
       if (e.data?.type !== 'FB_OAUTH_RESULT') return;
-      window.removeEventListener('message', handler);
-      clearInterval(pollClose);
+      cleanup();
       if (e.data.error) reject(new Error(e.data.error));
       else resolve(e.data.pages as FacebookPage[]);
     };
 
     window.addEventListener('message', handler);
 
-    // Detect if the user closed the popup manually
     const pollClose = setInterval(() => {
       if (popup.closed) {
-        clearInterval(pollClose);
-        window.removeEventListener('message', handler);
+        cleanup();
         reject(new Error('popup_closed'));
       }
     }, 500);
+
+    // Hard timeout — prevent interval running forever if popup is left open
+    const maxWait = setTimeout(() => {
+      cleanup();
+      popup.close();
+      reject(new Error('popup_timeout'));
+    }, 5 * 60 * 1000);
   });
 }
 

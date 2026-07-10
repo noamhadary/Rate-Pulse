@@ -37,8 +37,8 @@ export default function Sidebar({ open, onClose }: SidebarProps) {
       {/* Sidebar panel */}
       <aside
         className={`
-          fixed top-14 sm:top-20 md:top-28 right-0 h-[calc(100vh-56px)] sm:h-[calc(100vh-80px)] md:h-[calc(100vh-112px)] w-64 z-40
-          flex flex-col border-l bg-background border-outline-variant
+          fixed top-14 sm:top-20 md:top-28 end-0 h-[calc(100vh-56px)] sm:h-[calc(100vh-80px)] md:h-[calc(100vh-112px)] w-64 z-40
+          flex flex-col border-s bg-background border-outline-variant
           transition-transform duration-300 ease-in-out
           ${open ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
         `}

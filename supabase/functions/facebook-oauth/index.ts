@@ -13,10 +13,22 @@ Deno.serve(async (req) => {
     });
   }
 
-  try {
-    const { code, redirect_uri, user_id } = await req.json();
+  // Auth guard — read user from JWT, not from request body
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return json({ error: 'unauthorized' }, 401);
 
-    if (!code || !redirect_uri || !user_id) {
+  const authClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { data: { user }, error: authError } = await authClient.auth.getUser();
+  if (authError || !user) return json({ error: 'unauthorized' }, 401);
+
+  try {
+    const { code, redirect_uri } = await req.json();
+
+    if (!code || !redirect_uri) {
       return json({ error: 'missing_params' }, 400);
     }
 
