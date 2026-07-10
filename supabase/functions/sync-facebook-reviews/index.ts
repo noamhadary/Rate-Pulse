@@ -50,14 +50,18 @@ Deno.serve(async (req) => {
 
     const { data: conn, error: connErr } = await supabase
       .from('platform_connections')
-      .select('page_id, access_token')
-      .eq('business_id', business_id)
+      .select('credentials')
+      .eq('owner_id', user.id)
       .eq('platform', 'facebook')
       .single();
 
     if (connErr || !conn) return json({ synced: 0, error: 'no_credentials' });
 
-    const { page_id, access_token } = conn as { page_id: string; access_token: string };
+    const creds = conn.credentials as { page_id?: string; access_token?: string } | null;
+    const page_id = creds?.page_id;
+    const access_token = creds?.access_token;
+
+    if (!page_id || !access_token) return json({ synced: 0, error: 'no_credentials' });
 
     const res = await fetch(
       `https://graph.facebook.com/v19.0/${encodeURIComponent(page_id)}/ratings` +
