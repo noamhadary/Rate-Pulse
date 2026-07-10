@@ -18,6 +18,18 @@ Deno.serve(async (req) => {
     });
   }
 
+  // Auth guard — reject unauthenticated requests
+  const authHeader = req.headers.get('Authorization');
+  if (!authHeader) return json({ error: 'unauthorized' }, 401);
+
+  const authClient = createClient(
+    Deno.env.get('SUPABASE_URL') ?? '',
+    Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+    { global: { headers: { Authorization: authHeader } } },
+  );
+  const { data: { user }, error: authError } = await authClient.auth.getUser();
+  if (authError || !user) return json({ error: 'unauthorized' }, 401);
+
   try {
     const { review_id, reviewer_name, rating, content, tone } = await req.json();
 
@@ -64,7 +76,7 @@ Deno.serve(async (req) => {
       .filter(Boolean)
       .slice(0, 4);
 
-    while (suggestions.length < 4) suggestions.push(suggestions[0] ?? '');
+    if (suggestions.length < 2) return json({ error: 'model_returned_insufficient_suggestions' }, 500);
 
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -87,9 +99,6 @@ Deno.serve(async (req) => {
       { headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } },
     );
   } catch (err) {
-    return new Response(
-      JSON.stringify({ error: (err as Error).message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } },
-    );
+    return json({ error: (err as Error).message }, 500);
   }
 });

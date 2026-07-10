@@ -119,9 +119,8 @@ export default function Reviews() {
         .eq('owner_id', uId)
         .then(({ data }) => {
           data?.forEach((row) => {
-            const creds = row.credentials as Record<string, string> | null;
-            if (row.platform === 'facebook' && creds?.page_id && creds?.access_token) {
-              syncFacebookReviews(bId, creds.page_id, creds.access_token)
+            if (row.platform === 'facebook') {
+              syncFacebookReviews(bId)
                 .then(({ synced }) => { if (synced > 0) refetch(); });
             }
           });

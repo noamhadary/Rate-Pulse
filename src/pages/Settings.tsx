@@ -1762,7 +1762,7 @@ function IntegrationsTab({ showToast }: { showToast: (m: string, t?: ToastProps[
       showToast(error ? `שגיאה בסנכרון: ${error}` : `סונכרנו ${synced} ביקורות`, error ? 'error' : 'success');
     } else if (id === 'facebook') {
       const creds = savedCreds['facebook'] ?? {};
-      const { synced, error } = await syncFacebookReviews(business.id, creds.page_id ?? '', creds.access_token ?? '');
+      const { synced, error } = await syncFacebookReviews(business.id);
       setSyncing(null);
       showToast(error ? `שגיאה בסנכרון: ${error}` : `סונכרנו ${synced} ביקורות`, error ? 'error' : 'success');
     } else {
