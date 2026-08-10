@@ -1,0 +1,31 @@
+# Supabase project config
+# מצהיר במפורש על מדיניות האימות של כל Edge Function — כדי שמי שמקים
+# את הפרויקט מחדש יקבל את אותן הגדרות, וכדי שיהיה מקום מפורש להצהיר
+# איזו פונקציה פתוחה בכוונה ואיזו דורשת אימות.
+
+project_id = "ciiwsrduofplgahffxay"
+
+# --- פונקציות שנקראות מהאפליקציה עם JWT של משתמש מחובר ---
+# כולן גם מאמתות בקוד (auth.getUser) — verify_jwt כאן הוא הגנה נוספת בשער.
+[functions.generate-replies]
+verify_jwt = true
+
+[functions.send-whatsapp]
+verify_jwt = true
+
+[functions.sync-facebook-reviews]
+verify_jwt = true
+
+[functions.sync-google-reviews]
+verify_jwt = true
+
+[functions.facebook-oauth]
+verify_jwt = true
+
+# --- webhook חיצוני ---
+# Green API קורא לכתובת הזו מבחוץ, בלי JWT של Supabase, ולכן היא חייבת
+# להישאר פתוחה. ההגנה שלה היא בקוד: היא מפרסמת רק suggestions שמורים
+# מה-DB (לא טקסט מגוף הבקשה), ומזוהה לפי מספר הטלפון של השולח.
+# מומלץ בהמשך להוסיף טוקן סודי ב-query string ולאמת אותו כאן.
+[functions.whatsapp-webhook]
+verify_jwt = false

@@ -179,8 +179,8 @@ erDiagram
 | **GREEN API** | שליחת ביקורות ותשובות מוצעות ב-WhatsApp Business | `GREEN_API_INSTANCE_ID`, `GREEN_API_TOKEN` |
 | **Google Business Profile** | שליפת ביקורות Google | OAuth / API Key |
 | **Google OAuth** | אוטנטיקציה - התחברות משתמשים דרך חשבון גוגל | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` |
-| **Facebook Pages API** | שליפת ביקורות Facebook | `FB_ACCESS_TOKEN` |
-| **TripAdvisor API** | שליפת ביקורות TripAdvisor | `TRIPADVISOR_KEY` |
+| **Facebook Pages API** | שליפת ביקורות Facebook (OAuth) | `FACEBOOK_APP_ID`, `FACEBOOK_APP_SECRET` |
+| **TripAdvisor** _(בפיתוח — לא מחובר)_ | מופיע ב-UI ובנתוני הדמו בלבד; אין עדיין אינטגרציית API | — |
 | **Vercel** | Hosting ו-CI/CD לצד הלקוח | — |
 
 ---
